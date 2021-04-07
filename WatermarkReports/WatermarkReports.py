@@ -141,7 +141,7 @@ def main():
                             origPages = origReport_reader.getNumPages()
                             for i in range(maxPages):
                                 pdf_page = wm_reader.getPage(i)
-                                if i + 1 < origPages:
+                                if i < origPages:
                                     pdf_page.mergePage(origReport_reader.getPage(i))
                                 if i == 0:                            
                                     pdf_page.mergePage(cover_reader.getPage(0))
