@@ -2,6 +2,9 @@
 
 This is a work in progress.
 
+### mahCanvas.py
+This is a class for accessing Canvas using the CanvasAPI from UCFopen
+
 ### WatermarkReports.py
 Usage: python WatermarkReports gradebook.csv submissionsFolder
 
