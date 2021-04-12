@@ -28,6 +28,7 @@ import os
 import pandas as pd
 import sys
 import argparse
+import glob
 
 def main():
     
@@ -60,8 +61,13 @@ def main():
     df = pd.read_csv(gradesCSV, usecols=[0,1], header=2)
     df.columns = ['Name', 'ID']
 
-    # Comment out the next line if you don't want .docx --> .pdf
-    convert(subFolder)
+    # Test for word files before firing up Word
+    types = ('*.doc', '*.docx')
+    wordFiles = []
+    for files in types:
+        wordFiles.extend(glob.glob(files))
+    if len(wordFiles) > 0:
+        convert(subFolder)
     
     # Open the Watermark file. This pdf file contains 30 pages with numbers running down both sides.
     wm_file = open('Watermark.pdf', 'rb')
