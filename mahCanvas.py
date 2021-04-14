@@ -5,7 +5,7 @@
 #   https://canvas.instructure.com/doc/api/assignments.html
 #   https://github.com/dsavransky/grading
 
-from datetime import datetime, date
+from datetime import datetime, date, timedelta, timezone
 from dateutil import parser
 import os
 import numpy as np              # Install with Anaconda
@@ -13,7 +13,21 @@ import pandas as pd             # Install with Anaconda, also installs numpy I t
 from canvasapi import Canvas    # pip install canvasapi
 import keyring                  # pip install keyring
 from bullet import Bullet       # pip install bullet
+from pytz import reference
 import getpass
+
+# -----------------------------------------------------------------------------------
+#
+#           Helper functions
+#
+# -----------------------------------------------------------------------------------
+
+def utc_to_local(utc_dt):
+    return utc_dt.replace(tzinfo=timezone.utc).astimezone(tz=None)
+    
+    
+def local_to_utc(local_dt):
+    return local_dt.replace(tzinfo=None).astimezone(tz=timezone.utc)
 
 class mahCanvas:
 # -----------------------------------------------------------------------------------
@@ -52,6 +66,7 @@ class mahCanvas:
             print("Connected to Canvas.")
         self.canvas = canvas
             
+
 # -----------------------------------------------------------------------------------
 #
 #           Accessing Courses and Assignments
@@ -157,22 +172,30 @@ class mahCanvas:
         baseName = self.course.course_code
         studentList = []
         sectionList = []
+        
+        # Find the earliest section due date
+        earliestDate = date(2099, 1, 1)
+        for override in overrides:
+            if hasattr(override,'course_section_id'): # Section override?
+                due_at = utc_to_local(datetime.strptime(override.due_at,"%Y-%m-%dT%H:%M:%SZ"))
+                if due_at.date() < earliestDate:
+                    earliestDate = due_at.date()
+        
         for override in overrides:
             if hasattr(override, 'student_ids'):    # Student override?
                 for id in override.student_ids:
                     student = self.course.get_user(id)
-                    due_at = datetime.strptime(override.due_at,"%Y-%m-%dT%H:%M:%SZ")
+                    due_at = utc_to_local(datetime.strptime(override.due_at,"%Y-%m-%dT%H:%M:%SZ"))
                     data = {'Name' : student.sortable_name,
                             'studentID' : id,
                             'due_date' : due_at.strftime('%m/%d/%Y'),
                             'due_time' : due_at.strftime('%H:%M') }
                     studentList.append(data)
-                print('Student override for ', override)
             elif hasattr(override,'course_section_id'): # Section override?
-                due_at = datetime.strptime(override.due_at,"%Y-%m-%dT%H:%M:%SZ")
+                due_at = utc_to_local(datetime.strptime(override.due_at,"%Y-%m-%dT%H:%M:%SZ"))
                 data = {'Section' : override.title,
                         'course_section_id' : override.course_section_id,
-                        'due_date' : due_at.strftime('%m/%d/%Y'),
+                        'delta_date' : (due_at.date() - earliestDate).days,
                         'due_time' : due_at.strftime('%H:%M') }
                 sectionList.append(data)
                 
@@ -186,15 +209,17 @@ class mahCanvas:
             studentList = pd.DataFrame(studentList)
             studentList.to_csv(fileName, index=False)
         
-    def uploadAssignmentOverrides(self, overwrite = False, onlyThisTerm = True):
+    def uploadAssignmentOverrides(self, earliestDate, overwrite = False, onlyThisTerm = True):
     # Uploads the "override" due dates for an assignment in a course from one or two csv's
+    #    You must supply the earliest date for the assignment
+        
+        firstDay = parser.parse(earliestDate)
         
         # Use interactive lists to get course and assignment
         courseNum = self.chooseCourse(onlyThisTerm)
         self.course = self.canvas.get_course(courseNum)
         assignmentNum = self.chooseAssignment()
         assignment = self.course.get_assignment(assignmentNum)
-        
         baseName = self.course.course_code
         
         # If overwriting, erase existing overrides
@@ -256,9 +281,9 @@ class mahCanvas:
             for section in self.course.get_sections():
                 if section.name.startswith('LAB'):
                     labSections[section.id] = section.name
-
+                    
             for row in df.itertuples(index=True, name='Pandas'):
-                print(row.Section, row.course_section_id, row.due_date, row.due_time)
+                print(row.Section, row.course_section_id, row.delta_date, row.due_time)
                 
                 # Make sure section number and name match
                 if row.course_section_id in labSections:
@@ -273,8 +298,8 @@ class mahCanvas:
                     print('Exiting now. You need to fix the file before proceeding.')
                     return -1
                
-                
-                d = parser.parse(row.due_date + ' ' + row.due_time)
+                dueDate = (firstDay + timedelta(days = row.delta_date)).date().strftime('%m/%d/%Y')
+                d = parser.parse(dueDate + ' ' + row.due_time)
                 override = {'course_section_id' : row.course_section_id,
                             'due_at' : d}
 

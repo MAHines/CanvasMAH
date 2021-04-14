@@ -67,7 +67,7 @@ def main():
     for files in types:
         wordFiles.extend(glob.glob(files))
     if len(wordFiles) > 0:
-        convert(subFolder)
+        convert(subFolder)  # Converts Word files to pdf
     
     # Open the Watermark file. This pdf file contains 30 pages with numbers running down both sides.
     wm_file = open('Watermark.pdf', 'rb')
