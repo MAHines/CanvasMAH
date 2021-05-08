@@ -28,3 +28,10 @@ This script prepares lab report submissions downloaded from Canvas for Gradescop
 
   Some pdf files do not watermark properly. These files appear to have an opaque white background behind
     the text. A scanned file would probably not watermark correctly either.
+
+### CombineGradescopeCSVs.py
+Usage: python CombineGradescopeCSVs.py
+
+This script reads in all of the Gradescope data from all of the csv's in the cwd except 'allGrades.csv,'
+  then combines these data into a single csv containing all of the grades, 'allGrades.csv' The script 
+  also calculates a total grade for each experiment that has a graded report. The processing is done in pandas.
