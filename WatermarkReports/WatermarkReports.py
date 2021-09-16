@@ -2,11 +2,17 @@
 
 # This script prepares lab report submissions downloaded from Canvas for Gradescope upload.
 #   – Converts any .docx files to .pdf
+#   - Cleans all pdf's using mutool (scanned pdfs are particularly problematic)
 #   – Finds the length of the longest pdf
 #   – Gets student ID from Canvas filename, matches to student name in gradebook, and adds student name at top of first page
 #   – Adds vertical page numbers to both sides of each page to help Gradescope auto-assign pages.
 #   – Adjusts all pdf's to the same number of pages to help Gradescope auto-assign pages.
 #   – Produces file Outline.pdf which is used for preparing assignment in Gradescope
+#
+#   This script requires the installation of mutool, a free command line pdf tool, using
+#       brew install mupdf-tools
+#   If you need to install brew first, follow the instructions under "Install Homebrew" at
+#       https://brew.sh
 #
 #   This script requires the file 'Watermark.pdf' to be in the working directory. This file consists
 #     of a _scanned_ set of pages with numbers running down the right and left hand sides. It is
@@ -28,6 +34,7 @@ import os
 import pandas as pd
 import sys
 import argparse
+import subprocess
 import glob
 
 def main():
@@ -68,12 +75,39 @@ def main():
         wordFiles.extend(glob.glob(files))
     if len(wordFiles) > 0:
         convert(subFolder)  # Converts Word files to pdf
-    
+        
     # Open the Watermark file. This pdf file contains 30 pages with numbers running down both sides.
     wm_file = open('Watermark.pdf', 'rb')
 
     cwd = os.getcwd()
     os.chdir(subFolder)
+
+    # "Clean" all of the pdfs using mutool, outputting to a temporary file
+    print("Cleaning pdfs.")
+    for fn in os.listdir():
+        if not fn.endswith('.pdf'):
+            os.remove(fn)
+        else:
+            fn_out = fn + '_out'
+            result = subprocess.run(["mutool", "clean", "-s", "-g", fn, fn_out])
+    
+    # Delete all of the unclean files
+    for fn in os.listdir():
+        if fn.endswith('.pdf'):
+            os.remove(fn)
+
+    # Now reclean all of the files using mutool, outputting to the original file name
+    #   This may no longer be necessary, but it is very fast, so what the hey…
+    print("Recleaning pdfs.")
+    for fn in os.listdir():
+        fn_out = fn[:-4]
+        result = subprocess.run(["mutool", "clean", "-s", "-g", fn, fn_out])
+    
+    
+    # Rename the cleaned files to the original name
+    for fn in os.listdir():
+        if fn.endswith('_out'):
+            os.remove(fn)
 
     # Find the maximum number of pages across all files and delete non pdf
     maxPages = 0
