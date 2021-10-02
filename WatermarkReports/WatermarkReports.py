@@ -64,24 +64,38 @@ def main():
         print(f'ERROR: The file Watermark.pdf is not in the current directory.')
         exit()
 
-    # Read in the info in the gradebook so we can get names from IDs. Should probably add error checking
-    df = pd.read_csv(gradesCSV, usecols=[0,1], header=2)
+    # Canvas gradebook csv's can have a variable number of header rows. Open the gradebook,
+    #    count the number of lines that do not start with ", then close the gradebook
+    gradebookFile = open(gradesCSV, 'r')
+    text = gradebookFile.readlines()
+    cnt = 0;
+    for theLine in (text):
+        if theLine[0] == "\"":
+            break 
+        else:
+            cnt += 1
+    gradebookFile.close()
+
+    # Read in the info in the gradebook so we can get names from IDs. Should probably add error checking.
+    #   Unfortunately, cannot find documentation of file structure.
+    df = pd.read_csv(gradesCSV, usecols=[0,1], header=cnt-1)
     df.columns = ['Name', 'ID']
 
+    # Open the Watermark file. This pdf file contains 30 pages with numbers running down both sides.
+    wm_file = open('Watermark.pdf', 'rb')
+
     # Test for word files before firing up Word
+    cwd = os.getcwd()
+    os.chdir(subFolder)
     types = ('*.doc', '*.docx')
     wordFiles = []
     for files in types:
         wordFiles.extend(glob.glob(files))
     if len(wordFiles) > 0:
+        os.chdir(cwd)
         convert(subFolder)  # Converts Word files to pdf
+        os.chdir(subFolder)
         
-    # Open the Watermark file. This pdf file contains 30 pages with numbers running down both sides.
-    wm_file = open('Watermark.pdf', 'rb')
-
-    cwd = os.getcwd()
-    os.chdir(subFolder)
-
     # "Clean" all of the pdfs using mutool, outputting to a temporary file
     print("Cleaning pdfs.")
     for fn in os.listdir():
