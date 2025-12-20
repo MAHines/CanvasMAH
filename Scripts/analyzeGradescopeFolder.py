@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import numpy as np
 import streamlit.components.v1 as components
 
 # This is a streamlit package that is designed primarily to analyze grading in a folder of Gradescope
@@ -24,7 +23,8 @@ import streamlit.components.v1 as components
 
 
 def read_gradescope_csv(file_str):
-""" Reads a folder of csv's or a single csv of created by Gradescope's Export Evaluations."""
+    """ Reads a folder of csv's or a single csv of created by Gradescope's Export Evaluations."""
+    
     # The Gradescope csv's have a bunch of columns that are not useful to us. We avoid loading them
     columns = ['SID', 'Score', 'Grader']
     usecols = lambda x: (x in columns)
@@ -61,7 +61,7 @@ def read_gradescope_csv(file_str):
     return problemName, gs_df, gsRenamedColumns, grader_df, graderRenamedColumns
 
 def summarize_by_grader(df, scoreCol, graderCol):
-"""Analyzes a dataframe of grades to produce statistical analysis by grader. Returns a new dataframe. """
+    """Analyzes a dataframe of grades to produce statistical analysis by grader. Returns a new dataframe. """
     
     # Perform the analysis by grader
     new_df = df[[scoreCol, graderCol]].groupby(graderCol).describe()
@@ -88,7 +88,7 @@ def summarize_by_grader(df, scoreCol, graderCol):
     return new_df
     
 def handle_upload_change():
-"""Callback function to update session state after a file/folder is uploaded. Used to remove file upload input."""
+    """Callback function to update session state after a file/folder is uploaded. Used to remove file upload input."""
     # Check if a file was actually uploaded in the callback
     if st.session_state['uploader_key'] is not None:
         st.session_state['file_uploaded'] = True
@@ -96,7 +96,7 @@ def handle_upload_change():
         st.session_state['uploaded_file_data'] = st.session_state['uploader_key']
 
 def handle_problem_change():
-""" Function to update session state when the problem to be analyzed is changed."""
+    """ Function to update session state when the problem to be analyzed is changed."""
     
     if st.session_state['file_uploaded'] and st.session_state['analysis_done']:
         if st.session_state.problem_select_box == ' All':
@@ -113,7 +113,7 @@ def handle_problem_change():
         st.session_state.fig = prepare_graph(st.session_state.primaryGrader_df)
      
 def reset_uploader():
-"""Function to clear the uploaded file data and show the uploader again."""
+    """Function to clear the uploaded file data and show the uploader again."""
     st.session_state['file_uploaded'] = False
     st.session_state['uploaded_file_data'] = None
     st.session_state['analysis_done'] = False
@@ -123,7 +123,7 @@ def reset_uploader():
     # hiding and showing it again effectively resets it.
 
 def prepare_graph(df):
-"""Create a bar chart with error bars and a horizontal line showing the mean."""
+    """Create a bar chart with error bars and a horizontal line showing the mean."""
     
     # Copy the dataframe for graphing
     plt_df = df.copy()
@@ -169,7 +169,7 @@ if 'current_problem' not in st.session_state:
     
 @st.dialog('Enter string')
 def nameOfAnalysis_dialog():
-""" Use a modal dialog to ask the user for a name for the analysis. This will appear at the top of the main page"""
+    """ Use a modal dialog to ask the user for a name for the analysis. This will appear at the top of the main page"""
 
     user_input = st.text_input('Name of data being analyzed:',
                                 key="dialog_input")
