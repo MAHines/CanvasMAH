@@ -19,14 +19,6 @@ from bullet import Numbers
 #   Usage:
 #    (canvas) ~/Desktop $ python /Users/mah/Programming/CanvasMAH/Scripts/CombineGradescopeAndPearsonPSs.py 
 
-# Currently unused
-def setColumnOrder(allHeaders):
-    firstHeaders = ['Last_Name', 'First_Name', 'SID']
-    otherHeaders = list(set(allHeaders) - set(firstHeaders))
-    otherHeaders.sort()
-    newHeaders = firstHeaders + otherHeaders
-    return newHeaders
-
 def main():
     
     # Silences warning from pandas about having 'EX' entries
@@ -44,10 +36,10 @@ def main():
     maxPS = cli.launch()
     
     # Save this for debugging
-    # maxPS = 7
-    # gradescopeFile = '/Users/mah/Desktop/gradescope.csv'
-    # pearsonFile = '/Users/mah/Desktop/pearson.csv' 
-    # canvasFile = '/Users/mah/Desktop/canvas.csv'
+#     maxPS = 10
+#     gradescopeFile = '/Users/mah/Desktop/gradescope.csv'
+#     pearsonFile = '/Users/mah/Desktop/pearson.csv' 
+#     canvasFile = '/Users/mah/Desktop/canvas.csv'
     
     # Read in the required columns of canvas csv plus any that start with 'PS '
     columns = ["Student", "ID", "SIS User ID", "SIS Login ID", "Section"]
@@ -86,32 +78,28 @@ def main():
 
     # Now we need to propagate the 'EX' entries in Canvas to Gradescope and Pearson
     for i in range(1, maxPS + 1):  # Assume there are no more than 13 PSs
-        colStart = 'PS ' + str(i)
+        colStart = 'PS ' + str(i) + ' '
         canvasCol = canvas[[col for col in canvas.columns if col.startswith(colStart)]]
         if canvasCol.shape[1] > 0:   # Found a Canvas column
             # Get the name of the column in Canvas
             canvasColName = canvasCol.columns[0]
             IDs_canvas = canvas.loc[canvas[canvasColName] == 'EX', 'SIS User ID'].tolist()
             
-            # Process the gradescope data
-            gsCol = gradescope[[col for col in gradescope.columns if col.startswith(colStart)]]
-            if gsCol.shape[1] > 0:   # Found a corresponding Gradescope column
-                gsColName = gsCol.columns[0]
-            else:                    # Otherwise, make a new blank column
-                gsColName = colStart
+            # If this problem set does not exist on gradescope, make a column of 0's
+            gsColName = 'PS ' + str(i)
+            if gsColName not in gradescope.columns:
                 gradescope[gsColName] = 0
                 
+            # Change the name of the column
             newGsName = 'gsPS ' + str(i)
             gradescope.rename(columns={gsColName: newGsName}, inplace=True)
                 
-            # Process the Pearson data
-            psCol = pearson[[col for col in pearson.columns if col.startswith(colStart)]]
-            if psCol.shape[1] > 0:   # Found a corresponding Gradescope column
-                psColName = psCol.columns[0]
-            else:
-                psColName = colStart + ' Mastering'
+            # If this problem set does not exist on pearson, make a column of 0's
+            psColName = 'PS ' + str(i) + ' Mastering'
+            if psColName not in pearson.columns:
                 pearson[psColName] = 0
-            
+                
+            #Change the name of the column
             newPsName = 'psPS ' + str(i)
             pearson.rename(columns={psColName: newPsName}, inplace=True)            
                 
@@ -145,10 +133,10 @@ def main():
                     gsScale = 30.0/gsMax
                     psScale = 70.0/psMax
                 else:
-                    gsScale = 100.0/gsMax
+                    gsScale = 1.0   # Don't change scaling
                 
             elif psMax > 0:
-                psScale = 100.0/psMax
+                psScale = 100.0/psMax   # Scale to 100
                 
             allGrades[canvasColName] = (gsScale * allGrades[gsColName] + psScale * allGrades[psColName]).round(1)
             
